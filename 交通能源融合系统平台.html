@@ -1,0 +1,1144 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>交通与能源融合系统平台</title>
+    <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🚄</text></svg>">
+    <script>
+        window._AMapSecurityConfig = {
+            securityJsCode: 'ea33d905135a473d65bb441662158dcf'
+        };
+    </script>
+    <script src="https://webapi.amap.com/maps?v=2.0&key=c4ac4b0c74ddd085b34f2bb34fac5864&plugin=AMap.PlaceSearch"></script>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Microsoft YaHei', Arial, sans-serif;
+            background-color: #f5f5f5;
+            overflow: hidden;
+        }
+
+        .container {
+            display: flex;
+            height: 100vh;
+        }
+
+        .left-panel {
+            width: 400px;
+            background: linear-gradient(135deg, #1e3c72 0%, #2a5298 100%);
+            color: white;
+            padding: 20px;
+            overflow-y: auto;
+            box-shadow: 2px 0 10px rgba(0,0,0,0.1);
+            z-index: 1000;
+        }
+
+        .panel-header {
+            text-align: center;
+            margin-bottom: 30px;
+            padding-bottom: 20px;
+            border-bottom: 2px solid rgba(255,255,255,0.2);
+        }
+
+        .panel-header h1 {
+            font-size: 24px;
+            font-weight: bold;
+            margin-bottom: 10px;
+        }
+
+        .panel-header p {
+            font-size: 14px;
+            opacity: 0.8;
+        }
+
+        .search-section {
+            margin-bottom: 25px;
+        }
+
+        .search-input {
+            width: 100%;
+            padding: 12px;
+            border: none;
+            border-radius: 8px;
+            background: rgba(255,255,255,0.1);
+            color: white;
+            font-size: 14px;
+            margin-bottom: 10px;
+        }
+
+        .search-input::placeholder {
+            color: rgba(255,255,255,0.7);
+        }
+
+        .search-btn {
+            width: 100%;
+            padding: 12px;
+            background: #4CAF50;
+            color: white;
+            border: none;
+            border-radius: 8px;
+            cursor: pointer;
+            font-size: 14px;
+            font-weight: bold;
+            transition: background 0.3s;
+        }
+
+        .search-btn:hover {
+            background: #45a049;
+        }
+
+        .coords-section {
+            margin-bottom: 25px;
+        }
+
+        .coords-row {
+            display: flex;
+            gap: 10px;
+            margin-bottom: 10px;
+        }
+
+        .coord-input {
+            flex: 1;
+            padding: 10px;
+            border: none;
+            border-radius: 6px;
+            background: rgba(255,255,255,0.1);
+            color: white;
+            font-size: 12px;
+        }
+
+        .coord-input::placeholder {
+            color: rgba(255,255,255,0.7);
+        }
+
+        .data-source-section {
+            margin-bottom: 25px;
+        }
+
+
+        .time-section {
+            margin-bottom: 25px;
+        }
+
+        .time-input {
+            width: 100%;
+            padding: 10px;
+            border: none;
+            border-radius: 6px;
+            background: rgba(255,255,255,0.1);
+            color: white;
+            font-size: 12px;
+            margin-bottom: 10px;
+        }
+
+
+        .function-modules {
+            margin-bottom: 20px;
+        }
+
+        .module {
+            background: rgba(255,255,255,0.1);
+            border-radius: 8px;
+            margin-bottom: 15px;
+            overflow: hidden;
+            transition: all 0.3s ease;
+        }
+
+        .module-header {
+            padding: 15px;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            transition: background 0.3s;
+        }
+
+        .module-header:hover {
+            background: rgba(255,255,255,0.1);
+        }
+
+        .module-title {
+            display: flex;
+            align-items: center;
+            font-size: 14px;
+            font-weight: bold;
+        }
+
+        .module-icon {
+            width: 20px;
+            height: 20px;
+            margin-right: 10px;
+            background: rgba(255,255,255,0.2);
+            border-radius: 4px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .expand-icon {
+            transition: transform 0.3s;
+        }
+
+        .module.expanded .expand-icon {
+            transform: rotate(180deg);
+        }
+
+        .module-content {
+            max-height: 0;
+            overflow: hidden;
+            transition: max-height 0.3s ease;
+            background: rgba(0,0,0,0.1);
+        }
+
+        .module.expanded .module-content {
+            max-height: 300px;
+        }
+
+        .module-options {
+            padding: 15px;
+        }
+
+        .option-item {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 8px 0;
+            border-bottom: 1px solid rgba(255,255,255,0.1);
+        }
+
+        .option-item:last-child {
+            border-bottom: none;
+        }
+
+        .option-label {
+            font-size: 12px;
+        }
+
+        .option-btn {
+            padding: 4px 8px;
+            background: #2196F3;
+            color: white;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 10px;
+            transition: background 0.3s;
+        }
+
+        .option-btn:hover {
+            background: #1976D2;
+        }
+
+        .right-panel {
+            flex: 1;
+            position: relative;
+            background: #e0e0e0;
+        }
+
+        #mapContainer {
+            width: 100%;
+            height: 100%;
+        }
+
+
+
+        #search-result-panel {
+            position: absolute;
+            top: 20px;
+            left: 20px;
+            width: 300px;
+            max-height: 400px;
+            background: white;
+            border-radius: 8px;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+            z-index: 1000;
+            overflow-y: auto;
+            display: none;
+        }
+        
+        #search-result-panel .amap-poi-panel {
+            border: none !important;
+            box-shadow: none !important;
+        }
+        
+        #search-result-panel .amap-poi-panel .amap-poi-panel-header {
+            background: #f5f5f5;
+            border-bottom: 1px solid #ddd;
+            padding: 10px 15px;
+            font-weight: bold;
+        }
+        
+        #search-result-panel .amap-poi-panel .amap-poi-panel-content {
+            padding: 0;
+        }
+        
+        #search-result-panel .amap-poi-panel .amap-poi-panel-item {
+            padding: 10px 15px;
+            border-bottom: 1px solid #f0f0f0;
+            cursor: pointer;
+        }
+        
+        #search-result-panel .amap-poi-panel .amap-poi-panel-item:hover {
+            background: #f9f9f9;
+        }
+        
+        .search-panel-close {
+            position: absolute;
+            top: 5px;
+            right: 10px;
+            background: none;
+            border: none;
+            font-size: 18px;
+            cursor: pointer;
+            color: #999;
+        }
+
+        .search-panel-close:hover {
+            color: #333;
+        }
+
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="left-panel">
+            <div class="panel-header">
+                <h1>交通与能源融合系统平台</h1>
+                <p>铁路自洽能源系统规划设计</p>
+            </div>
+
+            <div class="search-section">
+                <div style="font-size: 12px; margin-bottom: 5px; opacity: 0.8;">线路搜索</div>
+                <div class="coords-row">
+                    <div style="flex: 1; margin-right: 5px;">
+                        <input type="text" class="coord-input" placeholder="起始站">
+                    </div>
+                    <div style="flex: 1; margin-left: 5px;">
+                        <input type="text" class="coord-input" placeholder="终到站">
+                    </div>
+                </div>
+                <button class="search-btn">🚄 查询线路</button>
+            </div>
+
+            <div class="search-section">
+                <div style="font-size: 12px; margin-bottom: 5px; opacity: 0.8;">站点搜索</div>
+                <input type="text" id="stationSearchInput" class="search-input" placeholder="请输入高铁站或线路进行搜索">
+                <button class="search-btn" onclick="searchStationAndUpdateCoords()">🔍 站点搜索</button>
+            </div>
+
+            <div class="coords-section">
+                <div class="coords-row">
+                    <div style="flex: 1; margin-right: 5px;">
+                        <div style="font-size: 12px; margin-bottom: 5px; opacity: 0.8;">经度</div>
+                        <input type="text" id="lngInput" class="coord-input" placeholder="经度" value="121.6845">
+                    </div>
+                    <div style="flex: 1; margin-left: 5px;">
+                        <div style="font-size: 12px; margin-bottom: 5px; opacity: 0.8;">纬度</div>
+                        <input type="text" id="latInput" class="coord-input" placeholder="纬度" value="31.2304">
+                    </div>
+                </div>
+            </div>
+
+            <div class="data-source-section">
+                <div style="font-size: 12px; margin-bottom: 5px; opacity: 0.8;">数据源</div>
+                <select class="time-input">
+                    <option>NASA气象数据: 全球气象观测</option>
+                    <option>NASA卫星数据: 地球观测卫星</option>
+                    <option>NASA气候数据: 长期气候分析</option>
+                    <option>NASA太阳数据: 太阳辐射监测</option>
+                </select>
+            </div>
+
+            <div class="time-section">
+                <div style="font-size: 12px; margin-bottom: 5px; opacity: 0.8;">起止时间</div>
+                <input type="datetime-local" class="time-input" value="2022-01-01T00:00">
+                <input type="datetime-local" class="time-input" value="2022-01-31T23:59">
+            </div>
+
+            <div class="function-modules">
+                <div class="module" data-module="load-forecast">
+                    <div class="module-header">
+                        <div class="module-title">
+                            <div class="module-icon">📊</div>
+                            负荷预测
+                        </div>
+                        <div class="expand-icon">▼</div>
+                    </div>
+                    <div class="module-content">
+                        <div class="module-options">
+                            <div class="option-item">
+                                <span class="option-label">光伏发电预测</span>
+                                <button class="option-btn">预测</button>
+                            </div>
+                            <div class="option-item">
+                                <span class="option-label">风力发电预测</span>
+                                <button class="option-btn">预测</button>
+                            </div>
+                            <div class="option-item">
+                                <span class="option-label">水力发电预测</span>
+                                <button class="option-btn">预测</button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="module" data-module="potential-assessment">
+                    <div class="module-header">
+                        <div class="module-title">
+                            <div class="module-icon">📈</div>
+                            潜力评估
+                        </div>
+                        <div class="expand-icon">▼</div>
+                    </div>
+                    <div class="module-content">
+                        <div class="module-options">
+                            <div class="option-item">
+                                <span class="option-label">负荷数据的输入</span>
+                                <button class="option-btn">输入</button>
+                            </div>
+                            <div class="option-item">
+                                <span class="option-label">预测模型的选择</span>
+                                <button class="option-btn">选择</button>
+                            </div>
+                            <div class="option-item">
+                                <span class="option-label">长期负荷预测</span>
+                                <button class="option-btn">预测</button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="module" data-module="planning-design">
+                    <div class="module-header">
+                        <div class="module-title">
+                            <div class="module-icon">🏗️</div>
+                            规划设计
+                        </div>
+                        <div class="expand-icon">▼</div>
+                    </div>
+                    <div class="module-content">
+                        <div class="module-options">
+                            <div class="option-item">
+                                <span class="option-label">架构设计</span>
+                                <button class="option-btn">设计</button>
+                            </div>
+                            <div class="option-item">
+                                <span class="option-label">设备选型配置</span>
+                                <button class="option-btn">配置</button>
+                            </div>
+                            <div class="option-item">
+                                <span class="option-label">容量配置</span>
+                                <button class="option-btn">配置</button>
+                            </div>
+                            <div class="option-item">
+                                <span class="option-label">规划方案评估</span>
+                                <button class="option-btn">评估</button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="right-panel">
+            <div id="mapContainer"></div>
+            
+            <div id="search-result-panel" style="display: none;"></div>
+
+        </div>
+    </div>
+
+    <script>
+        document.querySelectorAll('.module').forEach(module => {
+            const header = module.querySelector('.module-header');
+            header.addEventListener('click', () => {
+                module.classList.toggle('expanded');
+            });
+        });
+
+        document.querySelectorAll('.search-btn').forEach((btn, index) => {
+            btn.addEventListener('click', () => {
+                if (index === 0) {
+                    const startStation = document.querySelectorAll('.coord-input')[0].value;
+                    const endStation = document.querySelectorAll('.coord-input')[1].value;
+                    if (startStation.trim() && endStation.trim()) {
+                        searchRoute(startStation, endStation);
+                    } else {
+                        alert('请输入起始站和终到站');
+                    }
+                } else {
+            const searchValue = document.querySelector('.search-input').value;
+            if (searchValue.trim()) {
+                        searchStation(searchValue);
+                    }
+            }
+            });
+        });
+
+        document.querySelectorAll('.option-btn').forEach(btn => {
+            btn.addEventListener('click', async (e) => {
+                const optionLabel = e.target.parentElement.querySelector('.option-label').textContent;
+                const module = e.target.closest('.module').dataset.module;
+                
+                try {
+                    await handleModuleAction(module, optionLabel);
+                } catch (error) {
+                    console.error('执行功能失败:', error);
+                    alert(`执行失败: ${error.message}`);
+                }
+            });
+        });
+
+        async function handleModuleAction(module, action) {
+            const startDate = document.querySelector('input[type="datetime-local"]').value;
+            const endDate = document.querySelectorAll('input[type="datetime-local"]')[1].value;
+            
+            switch(module) {
+                case 'load-forecast':
+                    await handleLoadForecast(action, startDate, endDate);
+                    break;
+                case 'potential-assessment':
+                    await handlePotentialAssessment(action, startDate, endDate);
+                    break;
+                case 'planning-design':
+                    await handlePlanningDesign(action, startDate, endDate);
+                    break;
+                default:
+                    alert(`正在执行: ${action}`);
+            }
+        }
+
+        async function handleLoadForecast(action, startDate, endDate) {
+            if (action === '光伏发电预测') {
+                await showPVForecastModal(startDate, endDate);
+            } else {
+                alert(`负荷预测功能开发中\n操作: ${action}\n时间范围: ${startDate} 到 ${endDate}\n\n等待计算代码导入...`);
+            }
+        }
+
+        async function showPVForecastModal(startDate, endDate) {
+            // 创建模态框
+            const modal = document.createElement('div');
+            modal.id = 'pvForecastModal';
+            modal.style.cssText = `
+                position: fixed;
+                top: 0;
+                left: 0;
+                width: 100%;
+                height: 100%;
+                background: rgba(0,0,0,0.8);
+                z-index: 10000;
+                display: flex;
+                align-items: center;
+                justify-content: center;
+            `;
+            
+            modal.innerHTML = `
+                <div style="background: white; border-radius: 12px; padding: 30px; max-width: 800px; width: 90%; max-height: 90%; overflow-y: auto;">
+                    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px;">
+                        <h2 style="margin: 0; color: #333;">🌞 光伏发电预测</h2>
+                        <button onclick="closePVForecastModal()" style="background: none; border: none; font-size: 24px; cursor: pointer; color: #999;">×</button>
+                    </div>
+                    
+                    <div style="margin-bottom: 20px;">
+                        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 15px; margin-bottom: 15px;">
+                            <div>
+                                <label style="display: block; margin-bottom: 5px; font-weight: bold;">装机容量 (kW)</label>
+                                <input type="number" id="installedCapacity" value="1000" min="1" max="10000" 
+                                       style="width: 100%; padding: 8px; border: 1px solid #ddd; border-radius: 4px;">
+                            </div>
+                            <div>
+                                <label style="display: block; margin-bottom: 5px; font-weight: bold;">光伏板效率</label>
+                                <input type="number" id="panelEfficiency" value="0.20" min="0.1" max="0.3" step="0.01"
+                                       style="width: 100%; padding: 8px; border: 1px solid #ddd; border-radius: 4px;">
+                            </div>
+                            <div>
+                                <label style="display: block; margin-bottom: 5px; font-weight: bold;">逆变器效率</label>
+                                <input type="number" id="inverterEfficiency" value="0.95" min="0.8" max="1.0" step="0.01"
+                                       style="width: 100%; padding: 8px; border: 1px solid #ddd; border-radius: 4px;">
+                            </div>
+                            <div>
+                                <label style="display: block; margin-bottom: 5px; font-weight: bold;">年衰减率</label>
+                                <input type="number" id="degradationRate" value="0.005" min="0" max="0.02" step="0.001"
+                                       style="width: 100%; padding: 8px; border: 1px solid #ddd; border-radius: 4px;">
+                            </div>
+                        </div>
+                        
+                        <div style="display: flex; gap: 10px; margin-bottom: 20px;">
+                            <button onclick="calculatePVForecast()" 
+                                    style="flex: 1; padding: 12px; background: #4CAF50; color: white; border: none; border-radius: 6px; cursor: pointer; font-weight: bold;">
+                                🔋 计算发电预测
+                            </button>
+                            <button onclick="calculateYearlyPVForecast()" 
+                                    style="flex: 1; padding: 12px; background: #2196F3; color: white; border: none; border-radius: 6px; cursor: pointer; font-weight: bold;">
+                                📅 多年预测
+                            </button>
+                        </div>
+                    </div>
+                    
+                    <div id="pvForecastResults" style="display: none;">
+                        <h3 style="color: #333; margin-bottom: 15px;">预测结果</h3>
+                        <div id="pvResultsContent"></div>
+                    </div>
+                    
+                    <div style="margin-top: 20px; padding-top: 20px; border-top: 1px solid #eee;">
+                        <div style="font-size: 12px; color: #666;">
+                            <strong>说明:</strong><br>
+                            • 基于地表辐射数据和温度进行发电量计算<br>
+                            • 考虑设备效率、温度系数和衰减因素<br>
+                            • 需要先在站点搜索框中输入站点名称<br>
+                            • 支持自定义时间区间查询
+                        </div>
+                    </div>
+                </div>
+            `;
+            
+            document.body.appendChild(modal);
+        }
+
+        function closePVForecastModal() {
+            const modal = document.getElementById('pvForecastModal');
+            if (modal) {
+                document.body.removeChild(modal);
+            }
+        }
+
+        async function calculatePVForecast() {
+            const startDate = document.querySelector('input[type="datetime-local"]').value;
+            const endDate = document.querySelectorAll('input[type="datetime-local"]')[1].value;
+            const stationSearchInput = document.getElementById('stationSearchInput').value.trim();
+            
+            if (!stationSearchInput) {
+                alert('请先输入站点名称');
+                return;
+            }
+            
+            const installedCapacity = parseFloat(document.getElementById('installedCapacity').value);
+            const panelEfficiency = parseFloat(document.getElementById('panelEfficiency').value);
+            const inverterEfficiency = parseFloat(document.getElementById('inverterEfficiency').value);
+            const degradationRate = parseFloat(document.getElementById('degradationRate').value);
+            
+            try {
+                // 根据站点名称搜索站点
+                const searchResponse = await fetch(`/api/stations/search?keyword=${encodeURIComponent(stationSearchInput)}&limit=1`);
+                const searchData = await searchResponse.json();
+                
+                if (!searchData.stations || searchData.stations.length === 0) {
+                    alert(`未找到站点"${stationSearchInput}"，请检查站点名称是否正确`);
+                    return;
+                }
+                
+                const stationId = searchData.stations[0].id;
+                
+                // 计算光伏发电预测
+                const response = await fetch('/api/pv-forecast/calculate', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({
+                        station_id: stationId,
+                        start_date: startDate,
+                        end_date: endDate,
+                        installed_capacity_kw: installedCapacity,
+                        panel_efficiency: panelEfficiency,
+                        inverter_efficiency: inverterEfficiency,
+                        degradation_rate: degradationRate
+                    })
+                });
+                
+                const result = await response.json();
+                
+                if (response.ok) {
+                    displayPVForecastResults(result);
+                } else {
+                    alert(`计算失败: ${result.detail}`);
+                }
+                
+            } catch (error) {
+                console.error('计算光伏发电预测失败:', error);
+                alert('计算失败，请检查网络连接');
+            }
+        }
+
+        async function calculateYearlyPVForecast() {
+            const stationSearchInput = document.getElementById('stationSearchInput').value.trim();
+            
+            if (!stationSearchInput) {
+                alert('请先输入站点名称');
+                return;
+            }
+            
+            const installedCapacity = parseFloat(document.getElementById('installedCapacity').value);
+            const degradationRate = parseFloat(document.getElementById('degradationRate').value);
+            
+            try {
+                // 根据站点名称搜索站点
+                const searchResponse = await fetch(`/api/stations/search?keyword=${encodeURIComponent(stationSearchInput)}&limit=1`);
+                const searchData = await searchResponse.json();
+                
+                if (!searchData.stations || searchData.stations.length === 0) {
+                    alert(`未找到站点"${stationSearchInput}"，请检查站点名称是否正确`);
+                    return;
+                }
+                
+                const stationId = searchData.stations[0].id;
+                
+                // 计算多年光伏发电预测
+                const response = await fetch(`/api/pv-forecast/yearly/${stationId}?years=5&installed_capacity_kw=${installedCapacity}&degradation_rate=${degradationRate}`);
+                const result = await response.json();
+                
+                if (response.ok) {
+                    displayYearlyPVForecastResults(result);
+                } else {
+                    alert(`计算失败: ${result.detail}`);
+                }
+                
+            } catch (error) {
+                console.error('计算多年光伏发电预测失败:', error);
+                alert('计算失败，请检查网络连接');
+            }
+        }
+
+        function displayPVForecastResults(result) {
+            const resultsDiv = document.getElementById('pvForecastResults');
+            const contentDiv = document.getElementById('pvResultsContent');
+            
+            contentDiv.innerHTML = `
+                <div style="background: #f8f9fa; padding: 15px; border-radius: 8px; margin-bottom: 15px;">
+                    <h4 style="margin: 0 0 10px 0; color: #333;">📊 预测摘要</h4>
+                    <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px; font-size: 14px;">
+                        <div><strong>总发电量:</strong> ${result.total_generation_kwh.toLocaleString()} kWh</div>
+                        <div><strong>平均日发电量:</strong> ${result.average_daily_generation_kwh.toLocaleString()} kWh</div>
+                        <div><strong>容量因子:</strong> ${(result.capacity_factor * 100).toFixed(2)}%</div>
+                        <div><strong>数据点数:</strong> ${result.data_points}</div>
+                    </div>
+                </div>
+                
+                <div style="max-height: 300px; overflow-y: auto; border: 1px solid #ddd; border-radius: 4px;">
+                    <table style="width: 100%; border-collapse: collapse;">
+                        <thead style="background: #f5f5f5; position: sticky; top: 0;">
+                            <tr>
+                                <th style="padding: 8px; border: 1px solid #ddd; text-align: left;">时间</th>
+                                <th style="padding: 8px; border: 1px solid #ddd; text-align: left;">太阳辐射 (W/m²)</th>
+                                <th style="padding: 8px; border: 1px solid #ddd; text-align: left;">温度 (°C)</th>
+                                <th style="padding: 8px; border: 1px solid #ddd; text-align: left;">发电量 (kWh)</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            ${result.forecast_results.slice(0, 50).map(item => `
+                                <tr>
+                                    <td style="padding: 8px; border: 1px solid #ddd;">${new Date(item.timestamp).toLocaleString()}</td>
+                                    <td style="padding: 8px; border: 1px solid #ddd;">${item.solar_radiation_wm2.toFixed(2)}</td>
+                                    <td style="padding: 8px; border: 1px solid #ddd;">${item.temperature_c.toFixed(1)}</td>
+                                    <td style="padding: 8px; border: 1px solid #ddd;">${item.hourly_generation_kwh.toFixed(4)}</td>
+                                </tr>
+                            `).join('')}
+                        </tbody>
+                    </table>
+                    ${result.forecast_results.length > 50 ? `<div style="padding: 10px; text-align: center; color: #666;">显示前50条记录，共${result.forecast_results.length}条</div>` : ''}
+                </div>
+            `;
+            
+            resultsDiv.style.display = 'block';
+        }
+
+        function displayYearlyPVForecastResults(result) {
+            const resultsDiv = document.getElementById('pvForecastResults');
+            const contentDiv = document.getElementById('pvResultsContent');
+            
+            contentDiv.innerHTML = `
+                <div style="background: #e3f2fd; padding: 15px; border-radius: 8px; margin-bottom: 15px;">
+                    <h4 style="margin: 0 0 10px 0; color: #1976d2;">📅 多年预测摘要</h4>
+                    <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px; font-size: 14px;">
+                        <div><strong>站点:</strong> ${result.station_name} (${result.province})</div>
+                        <div><strong>装机容量:</strong> ${result.installed_capacity_kw.toLocaleString()} kW</div>
+                        <div><strong>基准年发电量:</strong> ${result.base_year_generation_kwh.toLocaleString()} kWh</div>
+                        <div><strong>年衰减率:</strong> ${(result.degradation_rate * 100).toFixed(2)}%</div>
+                        <div><strong>数据年份:</strong> ${result.data_year || '未知'}</div>
+                        <div><strong>数据点数:</strong> ${result.data_points || 0}</div>
+                    </div>
+                </div>
+                
+                <div style="max-height: 300px; overflow-y: auto; border: 1px solid #ddd; border-radius: 4px;">
+                    <table style="width: 100%; border-collapse: collapse;">
+                        <thead style="background: #f5f5f5; position: sticky; top: 0;">
+                            <tr>
+                                <th style="padding: 8px; border: 1px solid #ddd; text-align: left;">年份</th>
+                                <th style="padding: 8px; border: 1px solid #ddd; text-align: left;">年发电量 (kWh)</th>
+                                <th style="padding: 8px; border: 1px solid #ddd; text-align: left;">平均日发电量 (kWh)</th>
+                                <th style="padding: 8px; border: 1px solid #ddd; text-align: left;">容量因子</th>
+                                <th style="padding: 8px; border: 1px solid #ddd; text-align: left;">衰减因子</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            ${result.yearly_forecasts.map(item => `
+                                <tr>
+                                    <td style="padding: 8px; border: 1px solid #ddd;">${item.year}</td>
+                                    <td style="padding: 8px; border: 1px solid #ddd;">${item.total_generation_kwh.toLocaleString()}</td>
+                                    <td style="padding: 8px; border: 1px solid #ddd;">${item.average_daily_generation_kwh.toLocaleString()}</td>
+                                    <td style="padding: 8px; border: 1px solid #ddd;">${(item.capacity_factor * 100).toFixed(2)}%</td>
+                                    <td style="padding: 8px; border: 1px solid #ddd;">${(item.degradation_factor * 100).toFixed(2)}%</td>
+                                </tr>
+                            `).join('')}
+                        </tbody>
+                    </table>
+                </div>
+            `;
+            
+            resultsDiv.style.display = 'block';
+        }
+
+        async function handlePotentialAssessment(action, startDate, endDate) {
+            alert(`潜力评估功能开发中\n操作: ${action}\n时间范围: ${startDate} 到 ${endDate}\n\n等待计算代码导入...`);
+        }
+
+        async function handlePlanningDesign(action, startDate, endDate) {
+            alert(`规划设计功能开发中\n操作: ${action}\n时间范围: ${startDate} 到 ${endDate}\n\n等待计算代码导入...`);
+        }
+
+        let map;
+        let markers = [];
+        let routes = [];
+        let scale, toolBar, controlBar, overView;
+
+        function initMap() {
+            map = new AMap.Map('mapContainer', {
+                zoom: 11,
+                center: [121.6845, 31.2304],
+                mapStyle: 'amap://styles/normal',
+                viewMode: '2D',
+                pitch: 0,
+                showLabel: true
+            });
+
+            initMapControls();
+        }
+
+        function initMapControls() {
+            AMap.plugin(['AMap.Scale', 'AMap.ToolBar', 'AMap.ControlBar', 'AMap.HawkEye', 'AMap.MapType'], function() {
+                scale = new AMap.Scale({ visible: true });
+                
+                toolBar = new AMap.ToolBar({
+                    visible: true,
+                    position: {
+                        top: '110px',
+                        right: '40px'
+                    }
+                });
+                
+                controlBar = new AMap.ControlBar({
+                    visible: true,
+                    position: {
+                        top: '10px',
+                        right: '10px'
+                    }
+                });
+                
+                overView = new AMap.HawkEye({ visible: true });
+
+                const mapType = new AMap.MapType({
+                    position: { top: '200px', right: '40px' }
+                });
+
+                map.addControl(scale);
+                map.addControl(toolBar);
+                map.addControl(controlBar);
+                map.addControl(overView);
+                map.addControl(mapType);
+            });
+        }
+
+        function searchStation(stationName) {
+            if (!stationName || stationName.trim() === '') {
+                alert('请输入搜索关键词');
+                return;
+            }
+            
+            clearSearchResults();
+            
+            const panel = document.getElementById('search-result-panel');
+            panel.style.display = 'block';
+            panel.innerHTML = `
+                <div style="padding: 15px; text-align: center; position: relative;">
+                    <button class="search-panel-close" onclick="closeSearchPanel()">×</button>
+                    <div>正在搜索 "${stationName}"...</div>
+                </div>
+            `;
+            
+            AMap.plugin(["AMap.PlaceSearch"], function () {
+                const placeSearch = new AMap.PlaceSearch({
+                    pageSize: 10,
+                    pageIndex: 1,
+                    city: '全国',
+                    citylimit: false,
+                    map: map,
+                    panel: 'search-result-panel',
+                    autoFitView: true
+                });
+
+                placeSearch.search(stationName);
+            });
+            
+            setTimeout(function() {
+                if (panel.innerHTML.includes('正在搜索')) {
+                    panel.innerHTML = `
+                        <div style="padding: 15px; text-align: center; position: relative;">
+                            <button class="search-panel-close" onclick="closeSearchPanel()">×</button>
+                            <div>搜索超时，请重试</div>
+                        </div>
+                    `;
+                }
+            }, 10000);
+        }
+        
+        function closeSearchPanel() {
+            const panel = document.getElementById('search-result-panel');
+            panel.style.display = 'none';
+            clearSearchResults();
+        }
+
+        function searchRoute(startStation, endStation) {
+            clearSearchResults();
+            clearRoutes();
+            
+            const loadingDiv = document.createElement('div');
+            loadingDiv.innerHTML = `
+                <div style="position: fixed; top: 50%; left: 50%; transform: translate(-50%, -50%); 
+                           background: rgba(0,0,0,0.8); color: white; padding: 20px; border-radius: 8px; z-index: 9999;">
+                    <div style="text-align: center;">
+                        <div style="margin-bottom: 10px;">🔍</div>
+                        <div>正在查询线路...</div>
+                        <div style="font-size: 12px; margin-top: 5px;">${startStation} → ${endStation}</div>
+                    </div>
+                </div>
+            `;
+            document.body.appendChild(loadingDiv);
+            
+            AMap.plugin(['AMap.Driving', 'AMap.PlaceSearch'], function() {
+                const placeSearch = new AMap.PlaceSearch({
+                    city: '全国',
+                    pageSize: 5,
+                    citylimit: false
+                });
+                
+                placeSearch.search(startStation, function(status1, result1) {
+                    if (status1 === 'complete' && result1.poiList.pois.length > 0) {
+                        const startPoi = result1.poiList.pois[0];
+                        const startPosition = [startPoi.location.lng, startPoi.location.lat];
+                        
+                        placeSearch.search(endStation, function(status2, result2) {
+                            document.body.removeChild(loadingDiv);
+                            
+                            if (status2 === 'complete' && result2.poiList.pois.length > 0) {
+                                const endPoi = result2.poiList.pois[0];
+                                const endPosition = [endPoi.location.lng, endPoi.location.lat];
+                                
+                                addStationMarker(startPosition, startPoi.name, 'start');
+                                addStationMarker(endPosition, endPoi.name, 'end');
+                                
+                                const driving = new AMap.Driving({
+                                    map: map,
+                                    showTraffic: false,
+                                    hideMarkers: true,
+                                    autoFitView: true
+                                });
+                                
+                                driving.search(startPosition, endPosition, function(status, result) {
+                                    if (status === 'complete' && result.routes.length > 0) {
+                                        const route = result.routes[0];
+                                        
+                                        showRouteInfo(startPoi.name, endPoi.name, route);
+                                        
+                                        map.setFitView();
+                                    } else {
+                                        alert('未找到可通行的线路');
+                                    }
+                                });
+                            } else {
+                                alert(`未找到终点站: ${endStation}`);
+                            }
+                        });
+                    } else {
+                        document.body.removeChild(loadingDiv);
+                        alert(`未找到起始站: ${startStation}`);
+                    }
+                });
+            });
+        }
+        
+        function addStationMarker(position, name, type) {
+            const color = type === 'start' ? '#4CAF50' : '#FF6B6B';
+            const icon = type === 'start' ? '🚉' : '🏁';
+            
+            const marker = new AMap.Marker({
+                position: position,
+                title: name,
+                icon: new AMap.Icon({
+                    size: new AMap.Size(32, 32),
+                    image: 'data:image/svg+xml;base64,' + btoa(`
+                        <svg width="32" height="32" viewBox="0 0 32 32">
+                            <circle cx="16" cy="16" r="12" fill="${color}" stroke="#fff" stroke-width="2"/>
+                            <text x="16" y="20" text-anchor="middle" fill="white" font-size="12">${icon}</text>
+                        </svg>
+                    `)
+                })
+            });
+            
+            map.add(marker);
+            markers.push(marker);
+            
+            const infoWindow = new AMap.InfoWindow({
+                content: `<div style="padding: 10px;">
+                    <h3 style="margin: 0 0 5px 0; color: ${color};">${name}</h3>
+                    <p style="margin: 0; font-size: 12px;">${type === 'start' ? '起始站' : '终点站'}</p>
+                </div>`
+            });
+            infoWindow.open(map, position);
+        }
+        
+        function showRouteInfo(startName, endName, route) {
+            const infoWindow = new AMap.InfoWindow({
+                content: `<div style="padding: 15px; min-width: 250px;">
+                    <h3 style="margin: 0 0 10px 0; color: #333;">🚄 线路查询结果</h3>
+                    <div style="margin-bottom: 8px;">
+                        <strong>起点:</strong> ${startName}
+                    </div>
+                    <div style="margin-bottom: 8px;">
+                        <strong>终点:</strong> ${endName}
+                    </div>
+                    <div style="margin-bottom: 8px;">
+                        <strong>总距离:</strong> ${(route.distance / 1000).toFixed(2)} 公里
+                    </div>
+                    <div style="margin-bottom: 8px;">
+                        <strong>预计时间:</strong> ${Math.round(route.time / 60)} 分钟
+                    </div>
+                    <div style="margin-bottom: 8px;">
+                        <strong>路径规划:</strong> ${route.steps.length} 个路段
+                    </div>
+                    <div style="font-size: 12px; color: #666; margin-top: 10px;">
+                        💡 点击地图上的标记查看详细信息
+                    </div>
+                </div>`
+            });
+            
+            infoWindow.open(map, route.path[0]);
+        }
+
+        function searchStationAndUpdateCoords() {
+            const stationSearchInput = document.getElementById('stationSearchInput');
+            const stationName = stationSearchInput.value.trim();
+            
+            if (!stationName) {
+                alert('请输入站点名称');
+                return;
+            }
+            
+            clearSearchResults();
+            
+            const panel = document.getElementById('search-result-panel');
+            panel.style.display = 'block';
+            panel.innerHTML = `
+                <div style="padding: 15px; text-align: center; position: relative;">
+                    <button class="search-panel-close" onclick="closeSearchPanel()">×</button>
+                    <div>正在搜索 "${stationName}"...</div>
+                </div>
+            `;
+            
+            AMap.plugin(["AMap.PlaceSearch"], function () {
+                const placeSearch = new AMap.PlaceSearch({
+                    pageSize: 10,
+                    pageIndex: 1,
+                    city: '全国',
+                    citylimit: false,
+                    map: map,
+                    panel: 'search-result-panel',
+                    autoFitView: true
+                });
+
+                placeSearch.search(stationName, function(status, result) {
+                    if (status === 'complete' && result.poiList.pois.length > 0) {
+                        const poi = result.poiList.pois[0];
+                        const position = [poi.location.lng, poi.location.lat];
+                        
+                        document.getElementById('lngInput').value = poi.location.lng.toFixed(6);
+                        document.getElementById('latInput').value = poi.location.lat.toFixed(6);
+                        
+                        const marker = new AMap.Marker({
+                            position: position,
+                            title: poi.name,
+                            icon: new AMap.Icon({
+                                size: new AMap.Size(32, 32),
+                                image: 'data:image/svg+xml;base64,' + btoa(`
+                                    <svg width="32" height="32" viewBox="0 0 32 32">
+                                        <circle cx="16" cy="16" r="12" fill="#FF6B6B" stroke="#fff" stroke-width="2"/>
+                                        <text x="16" y="20" text-anchor="middle" fill="white" font-size="12">🚄</text>
+                                    </svg>
+                                `)
+                            })
+                        });
+                        
+                        map.add(marker);
+                        markers.push(marker);
+                        
+                        const infoWindow = new AMap.InfoWindow({
+                            content: `
+                                <div style="padding: 15px; min-width: 250px;">
+                                    <h3 style="margin: 0 0 10px 0; color: #333;">🚄 ${poi.name}</h3>
+                                    <div style="margin-bottom: 8px;">
+                                        <strong>经度:</strong> ${poi.location.lng.toFixed(6)}
+                                    </div>
+                                    <div style="margin-bottom: 8px;">
+                                        <strong>纬度:</strong> ${poi.location.lat.toFixed(6)}
+                                    </div>
+                                    <div style="margin-bottom: 8px;">
+                                        <strong>地址:</strong> ${poi.address || '未知地址'}
+                                    </div>
+                                    <div style="font-size: 12px; color: #666; margin-top: 10px;">
+                                        💡 坐标已自动填入输入框
+                                    </div>
+                                </div>
+                            `
+                        });
+                        
+                        infoWindow.open(map, position);
+                        
+                        map.setCenter(position);
+                        map.setZoom(15);
+                        
+                    } else {
+                        alert('未找到该站点，请检查输入是否正确');
+                        panel.style.display = 'none';
+                    }
+                });
+            });
+        }
+
+        function clearSearchResults() {
+            markers.forEach(marker => {
+                map.remove(marker);
+            });
+            markers = [];
+        }
+
+        function clearRoutes() {
+            routes.forEach(route => {
+                map.remove(route);
+            });
+            routes = [];
+        }
+
+
+
+        document.addEventListener('DOMContentLoaded', function() {
+            initMap();
+        });
+    </script>
+</body>
+</html>
