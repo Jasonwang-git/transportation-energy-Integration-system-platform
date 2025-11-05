@@ -11,6 +11,7 @@ import math
 from typing import List
 from pydantic import BaseModel
 from pv_calculator import PVCalculator
+from wind_calculator import WindCalculator
 
 # 加载环境变量
 load_dotenv()
@@ -108,6 +109,103 @@ class PVForecastRequest(BaseModel):
 
 # 创建光伏计算器实例
 pv_calculator = PVCalculator()
+wind_calculator = WindCalculator()
+
+class WindForecastRequest(BaseModel):
+    station_id: int
+    start_date: str
+    end_date: str
+    rated_capacity_kw: float
+    cut_in_wind_speed_ms: float
+    rated_wind_speed_ms: float
+    cut_out_wind_speed_ms: float
+    tower_height_m: float = 80.0
+    num_turbines: int = 1
+
+def get_wind_weather_data_by_station_and_time(station_id: int, start_date: str, end_date: str) -> List[dict]:
+    """根据站点与时间范围获取用于风电计算的气象数据（风速/分量）。"""
+    # 获取站点信息
+    station_sql = """
+    SELECT s.id, s.name, s.province, s.province_id, p.name as province_name
+    FROM station s 
+    LEFT JOIN province p ON s.province_id = p.id
+    WHERE s.id = %s
+    """
+    station_result = execute_query(station_sql, (station_id,))
+    if not station_result:
+        raise HTTPException(status_code=404, detail="站点不存在")
+    station = station_result[0]
+    table_name = get_table_name_by_province(station['province'])
+
+    # 读取该省天气表中的风速信息
+    weather_sql = f"""
+    SELECT ts,
+           wind_speed_ms,
+           zonal_wind_ms,
+           meridional_wind_ms
+    FROM {table_name}
+    WHERE province_id = %s AND ts BETWEEN %s AND %s
+    ORDER BY ts
+    """
+    weather = execute_query(weather_sql, (station['province_id'], start_date, end_date))
+
+    # 归一为通用结构：ts, wind_speed（优先用风速，其次分量合成）
+    result: List[dict] = []
+    for row in weather:
+        ts = row.get('ts')
+        speed = row.get('wind_speed_ms')
+        if speed is None:
+            u = float(row.get('zonal_wind_ms') or 0)
+            v = float(row.get('meridional_wind_ms') or 0)
+            speed = (u ** 2 + v ** 2) ** 0.5
+        result.append({
+            'ts': ts,
+            'wind_speed': float(speed or 0)
+        })
+    return result
+
+@app.post("/api/wind-forecast/calculate")
+async def calculate_wind_forecast(request: WindForecastRequest):
+    """计算风力发电预测（使用数据库风速）。"""
+    try:
+        weather_data = get_wind_weather_data_by_station_and_time(
+            request.station_id, request.start_date, request.end_date
+        )
+        if not weather_data:
+            raise HTTPException(status_code=404, detail="未找到指定时间范围内的气象数据")
+
+        hourly = wind_calculator.calculate_hourly_generation(
+            weather_data=weather_data,
+            hub_height_m=request.tower_height_m,
+            rated_capacity_kw=request.rated_capacity_kw,
+            cut_in_ms=request.cut_in_wind_speed_ms,
+            rated_ms=request.rated_wind_speed_ms,
+            cut_out_ms=request.cut_out_wind_speed_ms,
+            num_turbines=request.num_turbines,
+        )
+
+        # 时间戳序列化
+        for item in hourly:
+            if isinstance(item['timestamp'], datetime):
+                item['timestamp'] = item['timestamp'].isoformat()
+            else:
+                item['timestamp'] = str(item['timestamp'])
+
+        summary = wind_calculator.summarize(hourly)
+        return {
+            'station_id': request.station_id,
+            'start_date': request.start_date,
+            'end_date': request.end_date,
+            'rated_capacity_kw': request.rated_capacity_kw,
+            'num_turbines': request.num_turbines,
+            **summary,
+            'forecast_results': hourly,
+            'data_points': len(hourly)
+        }
+    except HTTPException:
+        raise
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"风电预测计算失败: {str(e)}")
 
 def get_weather_data_by_station_and_time(station_id: int, start_date: str, end_date: str) -> List[dict]:
     """根据站点ID和时间范围获取气象数据"""
